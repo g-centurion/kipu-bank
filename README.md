@@ -6,9 +6,9 @@
 
 El contrato permite a los usuarios:
 
--   **Depositar ETH**: Guarda ETH de forma segura en una bóveda personal asociada a la dirección del usuario.
--   **Retirar ETH**: Extrae ETH de la bóveda, con un límite máximo por transacción para mayor seguridad.
--   **Seguir un límite global (`bankCap`)**: Define la cantidad máxima de ETH que el contrato puede gestionar en total.
+  - **Depositar ETH**: Guarda ETH de forma segura en una bóveda personal asociada a la dirección del usuario.
+  - **Retirar ETH**: Extrae ETH de la bóveda, con un límite máximo por transacción para mayor seguridad.
+  - **Seguir un límite global (`bankCap`)**: Define la cantidad máxima de ETH que el contrato puede gestionar en total.
 
 Este contrato implementa buenas prácticas de seguridad en Solidity, incluyendo el patrón **Checks-Effects-Interactions** para prevenir ataques de reentrada, el uso de **Errores Personalizados** para un manejo de errores eficiente en gas, y una completa documentación **NatSpec**.
 
@@ -18,20 +18,25 @@ Este contrato fue compilado con **Solidity 0.8.26** y está diseñado para ser d
 
 ### Requisitos
 
--   Navegador web con [MetaMask](https://metamask.io/) instalado.
--   ETH de prueba en la red Sepolia. Puedes obtenerlo de faucets como:
-    -   [ETH Kipu Faucet](https://faucet.ethkipu.org/)
-    -   [PK910 Sepolia Faucet](https://sepolia-faucet.pk910.de/)
+  - Navegador web con [MetaMask](https://metamask.io/) instalado.
+  - ETH de prueba en la red Sepolia. Puedes obtenerlo de faucets como:
+      - [ETH Kipu Faucet](https://faucet.ethkipu.org/)
+      - [PK910 Sepolia Faucet](https://sepolia-faucet.pk910.de/)
 
 ### Pasos para el Despliegue con Remix IDE
 
 1.  Abre el código de `KipuBank.sol` en [Remix IDE](https://remix.ethereum.org/).
+
 2.  Ve a la pestaña **"Solidity Compiler"**. Asegúrate de que el compilador esté configurado en la versión `0.8.26`. Haz clic en **"Compile KipuBank.sol"**.
+
 3.  Ve a la pestaña **"Deploy & Run Transactions"**.
+
 4.  En el menú **"ENVIRONMENT"**, selecciona **"Injected Provider"** (o "Injected Web3") para conectar Remix con MetaMask. Asegúrate de que MetaMask esté en la red "Sepolia".
+
 5.  En la sección **"Deploy"**, al lado del botón "Deploy", debes proporcionar los dos argumentos para el constructor:
-    -   `initialBankCap`: El límite total de ETH que el banco puede aceptar (en Wei).
-    -   `maxWithdrawalAmount`: El límite máximo de retiro por transacción (en Wei).
+
+      - `initialBankCap`: El límite total de ETH que el banco puede aceptar (en Wei).
+      - `maxWithdrawalAmount`: El límite máximo de retiro por transacción (en Wei).
 
     *Por ejemplo, para un límite de 10 ETH y un retiro máximo de 1 ETH, ingresarías los valores en Wei de la siguiente forma:*
     `10000000000000000000`, `1000000000000000000`
@@ -58,8 +63,60 @@ Una vez desplegado, puedes interactuar con el contrato desde la misma interfaz d
 
 ### Funciones de Lectura (View)
 
--   `bankCap()`: Devuelve el límite total del banco en Wei.
--   `MAX_WITHDRAWAL_PER_TX()`: Devuelve el límite de retiro por transacción en Wei.
--   `balances(address)`: Devuelve el saldo de una dirección específica.
--   `getDepositCount()`: Devuelve el número total de depósitos.
--   `getWithdrawalCount()`: Devuelve el número total de retiros.
+  - `bankCap()`: Devuelve el límite total del banco en Wei.
+  - `MAX_WITHDRAWAL_PER_TX()`: Devuelve el límite de retiro por transacción en Wei.
+  - `balances(address)`: Devuelve el saldo de una dirección específica.
+  - `getDepositCount()`: Devuelve el número total de depósitos.
+  - `getWithdrawalCount()`: Devuelve el número total de retiros.
+
+## Casos de Prueba
+
+\<details\>
+\<summary\>\<strong\>Haga clic aquí para ver los casos de prueba sugeridos\</strong\>\</summary\>
+
+A continuación, se presenta el plan de pruebas asumiendo los siguientes límites en el constructor:
+
+  - **`MAX_WITHDRAWAL_PER_TX`**: 1 ETH.
+  - **`bankCap`**: 10 ETH.
+
+### FASE 1: Configuración y Verificación de Constantes (Lectura)
+
+| ID | Función/Variable | Cuenta | Acción en Remix | Resultado Esperado | Requisito a Cubrir |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 1.1 | `bankCap()` | Usuario A | Clic en el botón azul. | Retorna `10 ETH` (en Wei). | Variable inmutable. |
+| 1.2 | `MAX_WITHDRAWAL_PER_TX()` | Usuario A | Clic en el botón azul. | Retorna `1 ETH` (en Wei). | Variable inmutable. |
+| 1.3 | `getDepositCount()` | Usuario B | Clic en el botón azul. | Debe retornar `0`. | Función `external view`. |
+| 1.4 | `_getInternalBalance` | Usuario A | Intentar invocarla. | Fallo. No es visible ni invocable. | Función `private`. |
+
+### FASE 2: Pruebas de Depósito (`depositar`)
+
+[cite\_start]Se verifica la lógica `payable`, el límite de `bankCap` y la emisión del evento `DepositSuccessful`. [cite: 9]
+
+| ID | Acción (Input en Remix) | Cuenta | Resultado Esperado | Verificación Posterior | Requisito de Seguridad |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2.1 | **Éxito**: Depositar `0.5 ETH`. | Usuario A | Transacción exitosa. | `balances(A)` es `0.5 ETH`. `getDepositCount()` es `1`. | `payable` y acumulación de saldo. |
+| 2.2 | **Éxito**: Depositar `0.1 ETH`. | Usuario B | Transacción exitosa. | `balances(B)` es `0.1 ETH`. `getDepositCount()` es `2`. | Integridad del estado. |
+| 2.3 | **Fallo (Exceso de Límite Global)**: Intentar depositar `10 ETH`. | Usuario B | La transacción debe **REVERTIR**. | Falla con el error `Bank__DepositExceedsCap`. | Uso de errores personalizados. |
+| 2.4 | **Verificación Post-Fallo**: Revisar después del fallo 2.3. | N/A | El estado no debe cambiar. | `getDepositCount()` debe seguir siendo `2`. | Propiedad de reversión. |
+| 2.5 | **Emisión de Evento**: Revisar logs de la transacción 2.1. | Usuario A | Evento `DepositSuccessful` emitido. | El log muestra el evento para Usuario A y `0.5 ETH`. | Emisión de eventos. |
+
+### FASE 3: Pruebas de Retiro (`withdraw`)
+
+Esta fase prueba límites, manejo de errores y, lo más importante, el cumplimiento del patrón **Checks-Effects-Interactions (CEI)**.
+
+| ID | Acción (Input en Remix) | Cuenta | Resultado Esperado | Verificación Posterior | Requisito de Seguridad |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 3.1 | **Fallo (Exceso Límite TX)**: Retirar `1.1 ETH`. | Usuario A | La transacción debe **REVERTIR**. | Falla con error `Bank__WithdrawalExceedsLimit`. | Límite `MAX_WITHDRAWAL_PER_TX`. |
+| 3.2 | **Fallo (Saldo Insuficiente)**: Retirar `0.5 ETH` (Saldo B es `0.1 ETH`). | Usuario B | La transacción debe **REVERTIR**. | Falla con error `Bank__InsufficientBalance`. | Validación de saldo. |
+| 3.3 | **Retiro Exitoso**: Retirar `0.2 ETH`. | Usuario A | Transacción exitosa. | `balances(A)` es `0.3 ETH`. `getWithdrawalCount()` es `1`. | Lógica de retiro. |
+| 3.4 | **Verificación Evento**: Revisar logs de TX 3.3. | Usuario A | Evento `WithdrawalSuccessful` emitido. | El log muestra el evento para Usuario A y `0.2 ETH`. | Emisión de eventos. |
+| 3.5 | **Verificación CEI (Debugger)**: Usar el Debugger en TX 3.3. | Usuario A | El saldo se actualiza **ANTES** de la transferencia externa. | El `balances(A)` se actualiza (EFFECTS) antes de la línea `call{value: ...}` (INTERACTION). | Cumplimiento del patrón CEI. |
+| 3.6 | **Verificación Transferencia Segura**: Revisar TX 3.3 en Etherscan. | Usuario A | Se usó `call`. | El gas utilizado es mayor a 2300, confirmando el uso de `.call()` en lugar de `.transfer()`. | Manejo seguro de transferencias. |
+
+### FASE 4: Control de Acceso (`onlyOwner`)
+
+| ID | Función/Requisito | Cuenta | Acción (Input en Remix) | Resultado Esperado | Requisito de Seguridad |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 4.1 | `onlyOwner` (Simulación) | Usuario B | Si existiera una función `setBankCap()` con `onlyOwner`, el Usuario B intenta llamarla. | La transacción debe **REVERTIR**. | [cite\_start]Debe fallar con el error `Bank__Unauthorized`. [cite: 17] |
+
+\</details\>
