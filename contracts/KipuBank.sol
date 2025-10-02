@@ -11,7 +11,7 @@ pragma solidity ^0.8.26;
 contract KipuBank {
 
     // ===============================================================
-    // ERRORES PERSONALIZADOS (Requisito: usar errores personalizados 
+    // ERRORES PERSONALIZADOS (Requisito: usar errores personalizados) 
     // ===============================================================
 
     /// @dev Se lanza cuando el monto depositado excede la capacidad restante del banco.
@@ -30,7 +30,7 @@ contract KipuBank {
     error Bank__Unauthorized();
 
     // ===================================
-    // EVENTOS (Requisito: Emitir eventos
+    // EVENTOS (Requisito: Emitir eventos)
     // ===================================
 
     /// @dev Se emite cuando un usuario deposita ETH.
@@ -44,7 +44,7 @@ contract KipuBank {
     event WithdrawalSuccessful(address indexed user, uint256 amount);
 
     // =========================================================================
-    // VARIABLES DE ESTADO (Requisito: Immutables, Mappings, Contadores [2, 3, 23])
+    // VARIABLES DE ESTADO (Requisito: Immutables, Mappings, Contadores)
     // =========================================================================
 
     /// @dev Límite global de depósitos para el contrato (fijado en el constructor).
@@ -65,9 +65,9 @@ contract KipuBank {
     /// @dev Conteo total de retiros exitosos.
     uint256 private _withdrawalCount = 0;
 
-    // =========================================================================
+    // ============================
     // CONSTRUCTOR Y MODIFICADORES
-    // =========================================================================
+    // ============================
 
     /// @dev Inicializa la capacidad máxima del banco y el límite de retiro por transacción.
     /// @param initialBankCap El límite total de ETH que el banco puede contener (en Wei).
@@ -78,20 +78,20 @@ contract KipuBank {
         _owner = msg.sender;
     }
 
-    /// @dev Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador [23]).
+    /// @dev Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador).
     modifier onlyOwner() {
         if (msg.sender != _owner) revert Bank__Unauthorized();
         _;
     }
 
-    // =========================================================================
+    // =============================
     // FUNCIONES EXTERNAS Y PÚBLICAS
-    // =========================================================================
+    // =============================
 
-    /// @dev Permite a los usuarios depositar ETH en su bóveda personal (Requisito: external payable [23]).
+    /// @dev Permite a los usuarios depositar ETH en su bóveda personal (Requisito: external payable).
     function deposit() external payable {
         // A. CHECKS
-        // Se calcula el balance actual (incluyendo el depósito) y se verifica contra el límite [2].
+        // Se calcula el balance actual (incluyendo el depósito) y se verifica contra el límite.
         if (address(this).balance > bankCap) {
             revert Bank__DepositExceedsCap(address(this).balance, bankCap, msg.value);
         }
@@ -118,13 +118,13 @@ contract KipuBank {
         }
 
         // B. EFFECTS (Patrón Checks-Effects-Interactions)
-        // Se actualiza el estado antes de la llamada externa para prevenir reentrancy [6, 28].
+        // Se actualiza el estado antes de la llamada externa para prevenir reentrancy.
         balances[msg.sender] -= amountToWithdraw;
         _withdrawalCount++;
 
         // C. INTERACTIONS
         // Se utiliza la función de bajo nivel `call` para transferir ETH de forma segura,
-        // ya que `transfer` y `send` limitan el gas a 2300, lo que puede fallar [29, 31].
+        // ya que `transfer` y `send` limitan el gas a 2300, lo que puede fallar.
         (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
 
         if (!success) {
@@ -134,11 +134,11 @@ contract KipuBank {
         emit WithdrawalSuccessful(msg.sender, amountToWithdraw);
     }
     
-    // =========================================================================
+    // ==============================
     // FUNCIONES INTERNAS Y DE VISTA
-    // =========================================================================
+    // ==============================
     
-    // Función privada (Requisito: una función privada [23])
+    // Función privada (Requisito: una función privada)
     
     /// @dev Retorna el saldo privado de un usuario. Es una función auxiliar interna.
     /// @param user La dirección del usuario.
@@ -147,7 +147,7 @@ contract KipuBank {
         return balances[user];
     }
 
-    // Funciones de vista (Requisito: una función external view [23])
+    // Funciones de vista (Requisito: una función external view)
 
     /// @dev Retorna el número total de depósitos realizados en el contrato.
     /// @return El conteo total de depósitos.
