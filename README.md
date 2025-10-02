@@ -71,15 +71,14 @@ Una vez desplegado, puedes interactuar con el contrato desde la misma interfaz d
 
 ## Casos de Prueba
 
-\<details\>
-\<summary\>\<strong\>Haga clic aquí para ver los casos de prueba sugeridos\</strong\>\</summary\>
+<details>
+  <summary><strong>Haga clic aquí para ver los casos de prueba sugeridos</strong></summary>
 
-A continuación, se presenta el plan de pruebas asumiendo los siguientes límites en el constructor:
-
+  A continuación, se presenta el plan de pruebas asumiendo los siguientes límites en el constructor:
   - **`MAX_WITHDRAWAL_PER_TX`**: 1 ETH.
   - **`bankCap`**: 10 ETH.
 
-### FASE 1: Configuración y Verificación de Constantes (Lectura)
+  ### FASE 1: Configuración y Verificación de Constantes (Lectura)
 
 | ID | Función/Variable | Cuenta | Acción en Remix | Resultado Esperado | Requisito a Cubrir |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -88,9 +87,9 @@ A continuación, se presenta el plan de pruebas asumiendo los siguientes límite
 | 1.3 | `getDepositCount()` | Usuario B | Clic en el botón azul. | Debe retornar `0`. | Función `external view`. |
 | 1.4 | `_getInternalBalance` | Usuario A | Intentar invocarla. | Fallo. No es visible ni invocable. | Función `private`. |
 
-### FASE 2: Pruebas de Depósito (`depositar`)
+  ### FASE 2: Pruebas de Depósito (`depositar`)
 
-[cite\_start]Se verifica la lógica `payable`, el límite de `bankCap` y la emisión del evento `DepositSuccessful`. [cite: 9]
+  Se verifica la lógica `payable`, el límite de `bankCap` y la emisión del evento `DepositSuccessful`.
 
 | ID | Acción (Input en Remix) | Cuenta | Resultado Esperado | Verificación Posterior | Requisito de Seguridad |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -100,9 +99,8 @@ A continuación, se presenta el plan de pruebas asumiendo los siguientes límite
 | 2.4 | **Verificación Post-Fallo**: Revisar después del fallo 2.3. | N/A | El estado no debe cambiar. | `getDepositCount()` debe seguir siendo `2`. | Propiedad de reversión. |
 | 2.5 | **Emisión de Evento**: Revisar logs de la transacción 2.1. | Usuario A | Evento `DepositSuccessful` emitido. | El log muestra el evento para Usuario A y `0.5 ETH`. | Emisión de eventos. |
 
-### FASE 3: Pruebas de Retiro (`withdraw`)
-
-Esta fase prueba límites, manejo de errores y, lo más importante, el cumplimiento del patrón **Checks-Effects-Interactions (CEI)**.
+  ### FASE 3: Pruebas de Retiro (`withdraw`)
+  Esta fase prueba límites, manejo de errores y, lo más importante, el cumplimiento del patrón **Checks-Effects-Interactions (CEI)**.
 
 | ID | Acción (Input en Remix) | Cuenta | Resultado Esperado | Verificación Posterior | Requisito de Seguridad |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -113,10 +111,10 @@ Esta fase prueba límites, manejo de errores y, lo más importante, el cumplimie
 | 3.5 | **Verificación CEI (Debugger)**: Usar el Debugger en TX 3.3. | Usuario A | El saldo se actualiza **ANTES** de la transferencia externa. | El `balances(A)` se actualiza (EFFECTS) antes de la línea `call{value: ...}` (INTERACTION). | Cumplimiento del patrón CEI. |
 | 3.6 | **Verificación Transferencia Segura**: Revisar TX 3.3 en Etherscan. | Usuario A | Se usó `call`. | El gas utilizado es mayor a 2300, confirmando el uso de `.call()` en lugar de `.transfer()`. | Manejo seguro de transferencias. |
 
-### FASE 4: Control de Acceso (`onlyOwner`)
+  ### FASE 4: Control de Acceso (`onlyOwner`)
 
 | ID | Función/Requisito | Cuenta | Acción (Input en Remix) | Resultado Esperado | Requisito de Seguridad |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 4.1 | `onlyOwner` (Simulación) | Usuario B | Si existiera una función `setBankCap()` con `onlyOwner`, el Usuario B intenta llamarla. | La transacción debe **REVERTIR**. | [cite\_start]Debe fallar con el error `Bank__Unauthorized`. [cite: 17] |
+| 4.1 | `onlyOwner` (Simulación) | Usuario B | Si existiera una función `setBankCap()` con `onlyOwner`, el Usuario B intenta llamarla. | La transacción debe **REVERTIR**. | Debe fallar con el error `Bank__Unauthorized`. |
 
-\</details\>
+</details>
