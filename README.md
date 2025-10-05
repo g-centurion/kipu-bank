@@ -22,120 +22,119 @@ El contrato implementa buenas prácticas de seguridad en Solidity, incluyendo el
 <details>
 A continuación se detalla la interfaz pública del contrato `KipuBank`.
 
-**Contrato:** `KipuBank` (`contracts/KipuBank.sol`)
+### Contract
+KipuBank : contracts/KipuBank.sol
 
-### Modificadores
-
-#### `onlyOwner`
+ --- 
+### Modifiers:
+### onlyOwner
 
 ```solidity
 modifier onlyOwner()
-````
+```
 
-Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador).
+_Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador)._
 
------
-
-### Funciones
-
-#### `constructor`
+ --- 
+### Functions:
+### constructor
 
 ```solidity
 constructor(uint256 initialBankCap, uint256 maxWithdrawalAmount) public
 ```
 
-Inicializa la capacidad máxima del banco y el límite de retiro por transacción.
+_Inicializa la capacidad máxima del banco y el límite de retiro por transacción._
 
-**Parámetros:**
+#### Parameters
 
-| Nombre                | Tipo    | Descripción                                                                 |
-| --------------------- | ------- | --------------------------------------------------------------------------- |
-| `initialBankCap`      | uint256 | El límite total de ETH que el banco puede contener (en Wei).                |
-| `maxWithdrawalAmount` | uint256 | El límite máximo de ETH que se puede retirar en una transacción (en Wei). |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| initialBankCap | uint256 | El límite total de ETH que el banco puede contener (en Wei). |
+| maxWithdrawalAmount | uint256 | El límite máximo de ETH que se puede retirar en una transacción (en Wei). |
 
-#### `deposit`
+### deposit
 
 ```solidity
 function deposit() external payable
 ```
 
-Permite a los usuarios depositar ETH en su bóveda personal (Requisito: `external payable`).
+_Permite a los usuarios depositar ETH en su bóveda personal (Requisito: external payable)._
 
-#### `withdraw`
+### withdraw
 
 ```solidity
 function withdraw(uint256 amountToWithdraw) external
 ```
 
-Permite a los usuarios retirar ETH de su bóveda, sujeto al límite de transacción.
+_Permite a los usuarios retirar ETH de su bóveda, sujeto al límite de transacción._
 
-**Parámetros:**
+#### Parameters
 
-| Nombre             | Tipo    | Descripción                             |
-| ------------------ | ------- | --------------------------------------- |
-| `amountToWithdraw` | uint256 | La cantidad de ETH (en Wei) a retirar. |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amountToWithdraw | uint256 | La cantidad de ETH (en Wei) a retirar. |
 
-#### `getDepositCount`
+### getDepositCount
 
 ```solidity
 function getDepositCount() external view returns (uint256)
 ```
 
-Retorna el número total de depósitos realizados en el contrato.
+_Retorna el número total de depósitos realizados en el contrato._
 
-**Valores de Retorno:**
+#### Return Values
 
-| Nombre | Tipo    | Descripción                     |
-| ------ | ------- | ------------------------------- |
-| `[0]`  | uint256 | El conteo total de depósitos.   |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | El conteo total de depósitos. |
 
-#### `getWithdrawalCount`
+### getWithdrawalCount
 
 ```solidity
 function getWithdrawalCount() external view returns (uint256)
 ```
 
-Retorna el número total de retiros realizados en el contrato.
+_Retorna el número total de retiros realizados en el contrato._
 
-**Valores de Retorno:**
+#### Return Values
 
-| Nombre | Tipo    | Descripción                   |
-| ------ | ------- | ----------------------------- |
-| `[0]`  | uint256 | El conteo total de retiros.   |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | El conteo total de retiros. |
 
------
-
-### Eventos
-
-#### `DepositSuccessful`
+ --- 
+### Events:
+### DepositSuccessful
 
 ```solidity
 event DepositSuccessful(address user, uint256 amount)
 ```
 
-Se emite cuando un usuario deposita ETH.
+_Se emite cuando un usuario deposita ETH._
 
-**Parámetros:**
+#### Parameters
 
-| Nombre   | Tipo    | Descripción                                |
-| -------- | ------- | ------------------------------------------ |
-| `user`   | address | La dirección que realizó el depósito.      |
-| `amount` | uint256 | La cantidad de ETH depositada (en Wei).    |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| user | address | La dirección que realizó el depósito. |
+| amount | uint256 | La cantidad de ETH depositada (en Wei). |
 
-#### `WithdrawalSuccessful`
+### WithdrawalSuccessful
 
 ```solidity
 event WithdrawalSuccessful(address user, uint256 amount)
 ```
 
-Se emite cuando un usuario retira ETH.
+_Se emite cuando un usuario retira ETH._
 
-**Parámetros:**
+#### Parameters
 
-| Nombre   | Tipo    | Descripción                              |
-| -------- | ------- | ---------------------------------------- |
-| `user`   | address | La dirección que realizó el retiro.      |
-| `amount` | uint256 | La cantidad de ETH retirada (en Wei).    |
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| user | address | La dirección que realizó el retiro. |
+| amount | uint256 | La cantidad de ETH retirada (en Wei). |
+
+
 
 -----
 
