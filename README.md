@@ -33,7 +33,7 @@ KipuBank : contracts/KipuBank.sol
 modifier onlyOwner()
 ```
 
-_Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador)._
+_Restricts function execution to only the contract owner (Requirement: Modifier)._
 
  --- 
 ### Functions:
@@ -43,14 +43,14 @@ _Limita la ejecución de la función solo al dueño del contrato (Requisito: Mod
 constructor(uint256 initialBankCap, uint256 maxWithdrawalAmount) public
 ```
 
-_Inicializa la capacidad máxima del banco y el límite de retiro por transacción._
+_Initializes the maximum bank capacity and the per-transaction withdrawal limit._
 
 #### Parameters
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| initialBankCap | uint256 | El límite total de ETH que el banco puede contener (en Wei). |
-| maxWithdrawalAmount | uint256 | El límite máximo de ETH que se puede retirar en una transacción (en Wei). |
+| initialBankCap | uint256 | The total ETH limit the bank can hold (in Wei). |
+| maxWithdrawalAmount | uint256 | The maximum ETH limit that can be withdrawn in one transaction (in Wei). |
 
 ### deposit
 
@@ -58,7 +58,7 @@ _Inicializa la capacidad máxima del banco y el límite de retiro por transacci�
 function deposit() external payable
 ```
 
-_Permite a los usuarios depositar ETH en su bóveda personal (Requisito: external payable)._
+_Allows users to deposit ETH into their personal vault (Requirement: external payable)._
 
 ### withdraw
 
@@ -66,13 +66,13 @@ _Permite a los usuarios depositar ETH en su bóveda personal (Requisito: externa
 function withdraw(uint256 amountToWithdraw) external
 ```
 
-_Permite a los usuarios retirar ETH de su bóveda, sujeto al límite de transacción._
+_Allows users to withdraw ETH from their vault, subject to the transaction limit._
 
 #### Parameters
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| amountToWithdraw | uint256 | La cantidad de ETH (en Wei) a retirar. |
+| amountToWithdraw | uint256 | The amount of ETH (in Wei) to withdraw. |
 
 ### getDepositCount
 
@@ -80,13 +80,13 @@ _Permite a los usuarios retirar ETH de su bóveda, sujeto al límite de transacc
 function getDepositCount() external view returns (uint256)
 ```
 
-_Retorna el número total de depósitos realizados en el contrato._
+_Returns the total number of deposits made to the contract._
 
 #### Return Values
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | El conteo total de depósitos. |
+| [0] | uint256 | The total deposit count. |
 
 ### getWithdrawalCount
 
@@ -94,13 +94,13 @@ _Retorna el número total de depósitos realizados en el contrato._
 function getWithdrawalCount() external view returns (uint256)
 ```
 
-_Retorna el número total de retiros realizados en el contrato._
+_Returns the total number of withdrawals made from the contract._
 
 #### Return Values
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| [0] | uint256 | El conteo total de retiros. |
+| [0] | uint256 | The total withdrawal count. |
 
  --- 
 ### Events:
@@ -110,14 +110,14 @@ _Retorna el número total de retiros realizados en el contrato._
 event DepositSuccessful(address user, uint256 amount)
 ```
 
-_Se emite cuando un usuario deposita ETH._
+_Emitted when a user deposits ETH._
 
 #### Parameters
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| user | address | La dirección que realizó el depósito. |
-| amount | uint256 | La cantidad de ETH depositada (en Wei). |
+| user | address | The address that performed the deposit. |
+| amount | uint256 | The amount of ETH deposited (in Wei). |
 
 ### WithdrawalSuccessful
 
@@ -125,15 +125,14 @@ _Se emite cuando un usuario deposita ETH._
 event WithdrawalSuccessful(address user, uint256 amount)
 ```
 
-_Se emite cuando un usuario retira ETH._
+_Emitted when a user withdraws ETH._
 
 #### Parameters
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| user | address | La dirección que realizó el retiro. |
-| amount | uint256 | La cantidad de ETH retirada (en Wei). |
-
+| user | address | The address that performed the withdrawal. |
+| amount | uint256 | The amount of ETH withdrawn (in Wei). |
 
 
 -----
