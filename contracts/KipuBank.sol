@@ -1,163 +1,181 @@
 // SPDX-License-Identifier: MIT
-pragma solidity > 0.8.0;
 
-// =========================================================================
-// DOCUMENTACIÓN NATSENEC DEL CONTRATO
-// =========================================================================
+pragma solidity ^0.8.26;
+
+// ===============================
+// NATSENEC CONTRACT DOCUMENTATION
+// ===============================
 
 /// @title KipuBank
 /// @author g-centurion
-/// @notice Contrato de bóveda que permite a los usuarios depositar ETH y retirarlo con un límite de transacción.
+/// @notice Vault contract allowing users to deposit ETH and withdraw it subject to a transaction limit.
 contract KipuBank {
 
-    // ===============================================================
-    // ERRORES PERSONALIZADOS (Requisito: usar errores personalizados) 
-    // ===============================================================
+// ==============================================
+// CUSTOM ERRORS (Requirement: use custom errors)
+// ==============================================
 
-    /// @dev Se lanza cuando el monto depositado excede la capacidad restante del banco.
-    error Bank__DepositExceedsCap(uint256 currentBalance, uint256 bankCap, uint256 attemptedDeposit);
+/// @dev Thrown when the deposited amount exceeds the remaining capacity of the bank.
+error Bank__DepositExceedsCap(uint256 currentBalance, uint256 bankCap, uint256 attemptedDeposit);
 
-    /// @dev Se lanza cuando el monto solicitado excede el límite de retiro por transacción.
-    error Bank__WithdrawalExceedsLimit(uint256 limit, uint256 requested);
+/// @dev Thrown when the requested amount exceeds the per-transaction withdrawal limit.
+error Bank__WithdrawalExceedsLimit(uint256 limit, uint256 requested);
 
-    /// @dev Se lanza cuando el usuario intenta retirar más de su saldo disponible.
-    error Bank__InsufficientBalance(uint256 available, uint256 requested);
+/// @dev Thrown when the user tries to withdraw more than their available balance.
+error Bank__InsufficientBalance(uint256 available, uint256 requested);
 
-    /// @dev Se lanza cuando una transferencia de ETH falla.
-    error Bank__TransferFailed();
+/// @dev Thrown when an ETH transfer fails.
+error Bank__TransferFailed();
 
-    /// @dev Se lanza cuando una función solo para el dueño es llamada por otro usuario.
-    error Bank__Unauthorized();
+/// @dev Thrown when an owner-only function is called by another user.
+error Bank__Unauthorized();
 
-    // ===================================
-    // EVENTOS (Requisito: Emitir eventos)
-    // ===================================
+// ===================================
+// EVENTS (Requirement: Emit events)
+// ===================================
 
-    /// @dev Se emite cuando un usuario deposita ETH.
-    /// @param user La dirección que realizó el depósito.
-    /// @param amount La cantidad de ETH depositada (en Wei).
-    event DepositSuccessful(address indexed user, uint256 amount);
+/// @dev Emitted when a user deposits ETH.
+/// @param user The address that performed the deposit.
+/// @param amount The amount of ETH deposited (in Wei).
+event DepositSuccessful(address indexed user, uint256 amount);
 
-    /// @dev Se emite cuando un usuario retira ETH.
-    /// @param user La dirección que realizó el retiro.
-    /// @param amount La cantidad de ETH retirada (en Wei).
-    event WithdrawalSuccessful(address indexed user, uint256 amount);
+/// @dev Emitted when a user withdraws ETH.
+/// @param user The address that performed the withdrawal.
+/// @param amount The amount of ETH withdrawn (in Wei).
+event WithdrawalSuccessful(address indexed user, uint256 amount);
 
-    // =========================================================================
-    // VARIABLES DE ESTADO (Requisito: Immutables, Mappings, Contadores)
-    // =========================================================================
+// =============================================================
+// STATE VARIABLES (Requirement: Immutables, Mappings, Counters)
+// =============================================================
 
-    /// @dev Límite global de depósitos para el contrato (fijado en el constructor).
-    uint256 public immutable bankCap;
+/// @dev Global deposit limit for the contract (set in the constructor).
+uint256 public immutable bankCap;
 
-    /// @dev Umbral fijo máximo que un usuario puede retirar en una sola transacción.
-    uint256 public immutable MAX_WITHDRAWAL_PER_TX;
+/// @dev Fixed maximum threshold a user can withdraw in a single transaction.
+uint256 public immutable MAX_WITHDRAWAL_PER_TX;
+
+/// @dev Address of the contract deployer for access control.
+address private immutable _owner;
+
+/// @dev Mapping of user address to their ETH balance (in Wei).
+mapping(address => uint256) public balances;
+
+/// @dev Total count of successful deposits.
+uint256 private _depositCount = 0;
+
+/// @dev Total count of successful withdrawals.
+uint256 private _withdrawalCount = 0;
+
+// =========================
+// CONSTRUCTOR AND MODIFIERS
+// =========================
+
+/// @dev Initializes the maximum bank capacity and the per-transaction withdrawal limit.
+/// @param initialBankCap The total ETH limit the bank can hold (in Wei).
+/// @param maxWithdrawalAmount The maximum ETH limit that can be withdrawn in one transaction (in Wei).
+constructor(uint256 initialBankCap, uint256 maxWithdrawalAmount) {
+    bankCap = initialBankCap;
+    MAX_WITHDRAWAL_PER_TX = maxWithdrawalAmount;
+    _owner = msg.sender;
+}
+
+/// @dev Restricts function execution to only the contract owner (Requirement: Modifier).
+modifier onlyOwner() {
+    if (msg.sender != _owner) revert Bank__Unauthorized();
+    _;
+}
+
+// =============================
+// EXTERNAL AND PUBLIC FUNCTIONS
+// =============================
+
+/// @dev Allows users to deposit ETH into their personal vault (Requirement: external payable).
+function deposit() external payable {
+    // A. CHECKS
+
+    // Correction 1 & 2: Check logic. To correctly verify the cap (address(this).balance + msg.value),
+    // we use the current balance (which already includes msg.value upon entry to this payable function) 
+    // and store the initial balance for accurate error reporting.
+    // We cache address(this).balance for the cap check and error reporting.
+    uint256 currentContractBalance = address(this).balance; 
     
-    /// @dev Dirección del desplegador del contrato para control de acceso.
-    address private immutable _owner;
-
-    /// @dev Mapeo de la dirección del usuario a su saldo de ETH (en Wei).
-    mapping(address => uint256) public balances;
-
-    /// @dev Conteo total de depósitos exitosos.
-    uint256 private _depositCount = 0;
-
-    /// @dev Conteo total de retiros exitosos.
-    uint256 private _withdrawalCount = 0;
-
-    // ============================
-    // CONSTRUCTOR Y MODIFICADORES
-    // ============================
-
-    /// @dev Inicializa la capacidad máxima del banco y el límite de retiro por transacción.
-    /// @param initialBankCap El límite total de ETH que el banco puede contener (en Wei).
-    /// @param maxWithdrawalAmount El límite máximo de ETH que se puede retirar en una transacción (en Wei).
-    constructor(uint256 initialBankCap, uint256 maxWithdrawalAmount) {
-        bankCap = initialBankCap;
-        MAX_WITHDRAWAL_PER_TX = maxWithdrawalAmount;
-        _owner = msg.sender;
+    // Correction 1 logic applied: Check if the current total balance exceeds the immutable cap.
+    if (currentContractBalance > bankCap) { 
+        // Report balance *before* the current deposit for better context in the error.
+        revert Bank__DepositExceedsCap(currentContractBalance - msg.value, bankCap, msg.value);
     }
 
-    /// @dev Limita la ejecución de la función solo al dueño del contrato (Requisito: Modificador).
-    modifier onlyOwner() {
-        if (msg.sender != _owner) revert Bank__Unauthorized();
-        _;
-    }
+    // B. EFFECTS
+    balances[msg.sender] += msg.value;
+    _depositCount++;
 
-    // =============================
-    // FUNCIONES EXTERNAS Y PÚBLICAS
-    // =============================
+    // C. INTERACTIONS
+    emit DepositSuccessful(msg.sender, msg.value);
+}
 
-    /// @dev Permite a los usuarios depositar ETH en su bóveda personal (Requisito: external payable).
-    function deposit() external payable {
-        // A. CHECKS
-        // Se calcula el balance actual (incluyendo el depósito) y se verifica contra el límite.
-        if (address(this).balance > bankCap) {
-            revert Bank__DepositExceedsCap(address(this).balance, bankCap, msg.value);
-        }
-        
-        // B. EFFECTS
-        balances[msg.sender] += msg.value;
-        _depositCount++; 
-
-        // C. INTERACTIONS
-        // Se emite el evento solo después de que el estado se ha modificado.
-        emit DepositSuccessful(msg.sender, msg.value);
-    }
-
-    /// @dev Permite a los usuarios retirar ETH de su bóveda, sujeto al límite de transacción.
-    /// @param amountToWithdraw La cantidad de ETH (en Wei) a retirar.
-    function withdraw(uint256 amountToWithdraw) external {
-        // A. CHECKS
-        if (amountToWithdraw > MAX_WITHDRAWAL_PER_TX) {
-            revert Bank__WithdrawalExceedsLimit(MAX_WITHDRAWAL_PER_TX, amountToWithdraw);
-        }
-
-        if (balances[msg.sender] < amountToWithdraw) {
-            revert Bank__InsufficientBalance(balances[msg.sender], amountToWithdraw);
-        }
-
-        // B. EFFECTS (Patrón Checks-Effects-Interactions)
-        // Se actualiza el estado antes de la llamada externa para prevenir reentrancy.
-        balances[msg.sender] -= amountToWithdraw;
-        _withdrawalCount++;
-
-        // C. INTERACTIONS
-        // Se utiliza la función de bajo nivel `call` para transferir ETH de forma segura,
-        // ya que `transfer` y `send` limitan el gas a 2300, lo que puede fallar.
-        (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
-
-        if (!success) {
-            revert Bank__TransferFailed();
-        }
-
-        emit WithdrawalSuccessful(msg.sender, amountToWithdraw);
-    }
+/// @dev Allows users to withdraw ETH from their vault, subject to the transaction limit.
+/// @param amountToWithdraw The amount of ETH (in Wei) to withdraw.
+function withdraw(uint256 amountToWithdraw) external {
+    // A. CHECKS
+    // Correction 2: Cache necessary state variable reads to avoid multiple storage accesses.
+    uint256 userBalance = balances[msg.sender];
+    uint256 limit = MAX_WITHDRAWAL_PER_TX; // MAX_WITHDRAWAL_PER_TX is already immutable, accessing it repeatedly is low risk but caching enhances consistency.
     
-    // ==============================
-    // FUNCIONES INTERNAS Y DE VISTA
-    // ==============================
+    if (amountToWithdraw > limit) {
+        revert Bank__WithdrawalExceedsLimit(limit, amountToWithdraw);
+    }
+
+    // Correction 2: Avoid reading balances[msg.sender] again in the error message.
+    if (userBalance < amountToWithdraw) {
+        revert Bank__InsufficientBalance(userBalance, amountToWithdraw);
+    }
+
+    // B. EFFECTS (Checks-Effects-Interactions Pattern)
+    // Update state before external call to prevent reentrancy [6-8].
     
-    // Función privada (Requisito: una función privada)
-    
-    /// @dev Retorna el saldo privado de un usuario. Es una función auxiliar interna.
-    /// @param user La dirección del usuario.
-    /// @return El saldo del usuario.
-    function _getInternalBalance(address user) private view returns (uint256) {
-        return balances[user];
+    // Correction 3: Use unchecked block. Since the previous check (userBalance < amountToWithdraw) 
+    // ensures there is no underflow, we use unchecked arithmetic for optimization (gas saving) [9, 10].
+    unchecked {
+        balances[msg.sender] = userBalance - amountToWithdraw;
+    }
+    _withdrawalCount++;
+
+    // C. INTERACTIONS
+    // Use low-level `call` for secure ETH transfer, avoiding the gas limit of `transfer`/`send` [11, 12].
+    (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
+
+    if (!success) {
+        revert Bank__TransferFailed();
     }
 
-    // Funciones de vista (Requisito: una función external view)
+    emit WithdrawalSuccessful(msg.sender, amountToWithdraw);
+}
 
-    /// @dev Retorna el número total de depósitos realizados en el contrato.
-    /// @return El conteo total de depósitos.
-    function getDepositCount() external view returns (uint256) {
-        return _depositCount;
-    }
+// ===========================
+// INTERNAL AND VIEW FUNCTIONS
+// ===========================
 
-    /// @dev Retorna el número total de retiros realizados en el contrato.
-    /// @return El conteo total de retiros.
-    function getWithdrawalCount() external view returns (uint256) {
-        return _withdrawalCount;
-    }
+// Private function (Requirement: one private function)
+/// @dev Returns the internal balance of a user. This is an auxiliary internal function.
+/// @param user The user's address.
+/// @return The user's balance.
+function _getInternalBalance(address user) private view returns (uint256) {
+    // Note: Since balances is public, reading it is already optimized via the getter function (external view), 
+    // but internal/private functions read directly from storage. This function serves the private requirement.
+    return balances[user];
+}
+
+// View functions (Requirement: one external view function)
+
+/// @dev Returns the total number of deposits made to the contract.
+/// @return The total deposit count.
+function getDepositCount() external view returns (uint256) {
+    return _depositCount;
+}
+
+/// @dev Returns the total number of withdrawals made from the contract.
+/// @return The total withdrawal count.
+function getWithdrawalCount() external view returns (uint256) {
+    return _withdrawalCount;
+}
 }
